@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../product/product_page.dart';
 import '../scan/scan_page.dart';
+import '../profile/profile_page.dart';
+import '../login/login_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -8,74 +10,17 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("AyamBebek App"),
+        title: const Text("Home"),
         backgroundColor: const Color(0xFF624D42),
-        centerTitle: true,
-        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 🔥 HEADER / GREETING
-            const Text(
-              "Halo 👋",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              "Selamat datang di aplikasi AyamBebek",
-              style: TextStyle(color: Colors.grey),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 🔥 BANNER
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF624D42),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.store, color: Colors.white, size: 32),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Belanja kebutuhan ternak dengan mudah 🐔",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // 🔥 MENU
-            const Text(
-              "Menu Utama",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 🔥 CARD MENU PRODUK
-            GestureDetector(
-              onTap: () {
+            ElevatedButton(
+              onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -83,39 +28,12 @@ class HomePage extends StatelessWidget {
                   ),
                 );
               },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.shopping_bag, color: Color(0xFF624D42)),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Lihat Produk",
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                    Icon(Icons.arrow_forward_ios, size: 16),
-                  ],
-                ),
-              ),
+              child: const Text("Lihat Produk"),
             ),
+            const SizedBox(height: 16),
 
-            // 🔥 CARD MENU SCAN
-            GestureDetector(
-              onTap: () {
+            ElevatedButton(
+              onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -123,44 +41,30 @@ class HomePage extends StatelessWidget {
                   ),
                 );
               },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.qr_code_scanner, color: Color(0xFF624D42)),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Scan Barcode",
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                    Icon(Icons.arrow_forward_ios, size: 16),
-                  ],
-                ),
-              ),
+              child: const Text("Scan Barcode"),
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            const Spacer(),
-
-            // 🔥 FOOTER
-            const Center(
-              child: Text(
-                "v1.0 AyamBebek App",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            )
+  Widget _buildMenuCard(BuildContext context, {required String title, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 40, color: color),
+            const SizedBox(height: 10),
+            Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
