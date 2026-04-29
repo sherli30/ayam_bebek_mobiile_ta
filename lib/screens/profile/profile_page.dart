@@ -17,7 +17,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController emailController;
   late TextEditingController phoneController;
   late TextEditingController addressController;
-  
+
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
@@ -104,7 +104,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _handleUpdate() async {
     final user = Session.user ?? {};
-    
+
     // 1. Cek apakah ada perubahan data
     bool isNameChanged = nameController.text.trim() != (user['name'] ?? "");
     bool isPhoneChanged = phoneController.text.trim() != (user['phone'] ?? "");
@@ -160,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (response.statusCode == 200) {
         Session.user = responseData['data']['user'];
         setState(() => _imageFile = null); // Reset image file karena sudah terupload
-        
+
         String detailPesan = "Profil Anda berhasil diperbarui";
         if (isImageChanged) detailPesan += " (termasuk foto)";
         _showNotification("$detailPesan!", isError: false);
@@ -199,11 +199,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   CircleAvatar(
                     radius: 60,
                     backgroundColor: Colors.grey[200],
-                    backgroundImage: _imageFile != null 
-                        ? FileImage(_imageFile!) 
+                    backgroundImage: _imageFile != null
+                        ? FileImage(_imageFile!)
                         : (avatarUrl != null ? NetworkImage(fullAvatarUrl) : null) as ImageProvider?,
-                    child: _imageFile == null && avatarUrl == null 
-                        ? const Icon(Icons.person, size: 60, color: Colors.orange) 
+                    child: _imageFile == null && avatarUrl == null
+                        ? const Icon(Icons.person, size: 60, color: Colors.orange)
                         : null,
                   ),
                   Positioned(
@@ -230,7 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildEditField(controller: phoneController, label: "Nomor HP", icon: Icons.phone_android_outlined),
             const SizedBox(height: 20),
             _buildEditField(controller: addressController, label: "Alamat", icon: Icons.location_on_outlined, maxLines: 3),
-            
+
             const SizedBox(height: 40),
 
             SizedBox(

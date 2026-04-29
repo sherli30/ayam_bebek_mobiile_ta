@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../product/product_page.dart';
 import '../scan/scan_page.dart';
-import '../profile/profile_page.dart';
-import '../login/login_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

@@ -41,7 +41,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
             // metode pembayaran
             DropdownButtonFormField<String>(
-              value: selectedPayment,
+              initialValue: selectedPayment,
               items: const [
                 DropdownMenuItem(
                   value: "Transfer Bank",
