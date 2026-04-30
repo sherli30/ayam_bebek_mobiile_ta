@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -12,7 +13,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
   late TextEditingController nameController;
   late TextEditingController emailController;
   late TextEditingController phoneController;
@@ -22,14 +23,28 @@ class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
+  // Untuk notifikasi yang bisa ditutup
+  late OverlayEntry? _currentOverlayEntry;
+
   @override
   void initState() {
     super.initState();
+    _currentOverlayEntry = null;
     final user = Session.user ?? {};
     nameController = TextEditingController(text: user['name'] ?? "");
     emailController = TextEditingController(text: user['email'] ?? "");
     phoneController = TextEditingController(text: user['phone'] ?? "");
     addressController = TextEditingController(text: user['address'] ?? "");
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    _currentOverlayEntry?.remove();
+    super.dispose();
   }
 
   Future<void> _pickImage() async {
@@ -40,72 +55,135 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showNotification(dynamic message, {bool isError = true}) {
-    if (!mounted) return;
+    // 1. Hapus notifikasi lama
+    if (_currentOverlayEntry != null) {
+      _currentOverlayEntry?.remove();
+      _currentOverlayEntry = null;
+    }
+
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
 
+    String? title;
     List<String> messages = [];
+
     if (message is String) {
       messages.add(message);
     } else if (message is List) {
       messages = message.map((e) => e.toString()).toList();
+    } else if (message is Map) {
+      title = message['title']?.toString();
+      if (message['list'] is List) {
+        messages = (message['list'] as List).map((e) => e.toString()).toList();
+      } else if (message['message'] != null) {
+        messages.add(message['message'].toString());
+      }
     }
+
+    late AnimationController notificationAnimController;
+    notificationAnimController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    final slideInAnimation = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+        .animate(CurvedAnimation(parent: notificationAnimController, curve: Curves.easeOut));
 
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 50,
         right: 20,
+        left: 20,
         child: Material(
           color: Colors.transparent,
-          child: Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isError ? Colors.redAccent.withOpacity(0.95) : Colors.greenAccent[700]!.withOpacity(0.95),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(isError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white, size: 24),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: messages.length == 1
-                        ? [Text(messages[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))]
-                        : messages.map((msg) => Padding(
+          child: SlideTransition(
+            position: slideInAnimation,
+            child: Container(
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.9),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isError ? Colors.redAccent.withOpacity(0.95) : Colors.greenAccent[700]!.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(isError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (title != null)
+                          Padding(
                             padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text("• ", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                Expanded(child: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
-                              ],
+                            child: Text(
+                              title,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                             ),
-                          )).toList(),
+                          ),
+                        ...messages.map((msg) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: (messages.length > 1 || title != null)
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 4, right: 6),
+                                      child: Icon(Icons.circle, color: Colors.white, size: 6),
+                                    ),
+                                    Flexible(child: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
+                                  ],
+                                )
+                              : Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                        )).toList(),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      notificationAnimController.reverse().then((_) {
+                        if (overlayEntry.mounted) {
+                          overlayEntry.remove();
+                          if (_currentOverlayEntry == overlayEntry) _currentOverlayEntry = null;
+                        }
+                      });
+                    },
+                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
 
+    _currentOverlayEntry = overlayEntry;
     overlay.insert(overlayEntry);
-    Future.delayed(const Duration(seconds: 4), () {
-      if (overlayEntry.mounted) overlayEntry.remove();
+    notificationAnimController.forward();
+
+    Future.delayed(const Duration(seconds: 5), () {
+      if (overlayEntry.mounted) {
+        notificationAnimController.reverse().then((_) {
+          if (overlayEntry.mounted) {
+            overlayEntry.remove();
+            if (_currentOverlayEntry == overlayEntry) _currentOverlayEntry = null;
+          }
+        });
+      }
     });
   }
 
   Future<void> _handleUpdate() async {
     final user = Session.user ?? {};
 
-    // 1. Cek apakah ada perubahan data
     bool isNameChanged = nameController.text.trim() != (user['name'] ?? "");
     bool isPhoneChanged = phoneController.text.trim() != (user['phone'] ?? "");
     bool isAddressChanged = addressController.text.trim() != (user['address'] ?? "");
@@ -113,24 +191,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (!isNameChanged && !isPhoneChanged && !isAddressChanged && !isImageChanged) {
       _showNotification("Tidak ada perubahan data yang dilakukan.");
-      return;
-    }
-
-    // 2. Validasi input wajib
-    if (nameController.text.trim().isEmpty) {
-      _showNotification("Nama lengkap tidak boleh dikosongkan.");
-      return;
-    }
-    if (nameController.text.trim().length < 3) {
-      _showNotification("Nama minimal harus terdiri dari 3 karakter.");
-      return;
-    }
-    if (phoneController.text.trim().isNotEmpty && phoneController.text.trim().length < 10) {
-      _showNotification("Nomor HP tidak valid. Minimal 10 digit.");
-      return;
-    }
-    if (addressController.text.trim().isNotEmpty && addressController.text.trim().length < 5) {
-      _showNotification("Alamat terlalu singkat. Mohon masukkan lebih detail.");
       return;
     }
 
@@ -159,13 +219,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (response.statusCode == 200) {
         Session.user = responseData['data']['user'];
-        setState(() => _imageFile = null); // Reset image file karena sudah terupload
+        setState(() => _imageFile = null);
 
-        String detailPesan = "Profil Anda berhasil diperbarui";
-        if (isImageChanged) detailPesan += " (termasuk foto)";
-        _showNotification("$detailPesan!", isError: false);
+        _showNotification(responseData['message'] ?? "Profil berhasil diperbarui", isError: false);
       } else {
-        _showNotification(responseData['message'] ?? "Gagal memperbarui profil. Silakan coba lagi.");
+        if (responseData['errors'] != null) {
+          List<String> allErrors = [];
+          (responseData['errors'] as Map<String, dynamic>).forEach((key, value) {
+            if (value is List) {
+              allErrors.addAll(value.map((e) => e.toString()));
+            } else {
+              allErrors.add(value.toString());
+            }
+          });
+          _showNotification(allErrors);
+        } else {
+          _showNotification(responseData['message'] ?? "Gagal memperbarui profil.");
+        }
       }
     } catch (e) {
       _showNotification("Gagal terhubung ke server. Periksa koneksi internet Anda.");
@@ -178,7 +248,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final user = Session.user ?? {};
     String? avatarUrl = user['avatar'];
-    // Jika avatar ada di DB, arahkan ke URL publik Laravel
     String fullAvatarUrl = avatarUrl != null ? "http://192.168.2.11:8000/storage/$avatarUrl" : "";
 
     return Scaffold(
@@ -223,13 +292,20 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 30),
 
-            _buildEditField(controller: nameController, label: "Nama Lengkap", icon: Icons.person_outline),
+            _buildEditField(controller: nameController, label: "Nama Lengkap", icon: Icons.person_outline, isRequired: true),
             const SizedBox(height: 20),
             _buildEditField(controller: emailController, label: "Email", icon: Icons.email_outlined, enabled: false),
             const SizedBox(height: 20),
-            _buildEditField(controller: phoneController, label: "Nomor HP", icon: Icons.phone_android_outlined),
+            _buildEditField(
+              controller: phoneController,
+              label: "Nomor HP",
+              icon: Icons.phone_android_outlined,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              isRequired: true,
+            ),
             const SizedBox(height: 20),
-            _buildEditField(controller: addressController, label: "Alamat", icon: Icons.location_on_outlined, maxLines: 3),
+            _buildEditField(controller: addressController, label: "Alamat", icon: Icons.location_on_outlined, maxLines: 3, isRequired: true),
 
             const SizedBox(height: 40),
 
@@ -259,12 +335,21 @@ class _ProfilePageState extends State<ProfilePage> {
     required String label,
     required IconData icon,
     bool enabled = true,
+    bool isRequired = false,
     int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        Row(
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+            if (isRequired)
+              const Text(" *", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -273,7 +358,14 @@ class _ProfilePageState extends State<ProfilePage> {
             controller: controller,
             enabled: enabled,
             maxLines: maxLines,
-            decoration: InputDecoration(icon: Icon(icon, color: Colors.orange), border: InputBorder.none, hintText: "Masukkan $label"),
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            decoration: InputDecoration(
+              icon: Icon(icon, color: Colors.orange),
+              border: InputBorder.none,
+              hintText: "Masukkan $label",
+              hintStyle: const TextStyle(color: Colors.grey),
+            ),
           ),
         ),
       ],

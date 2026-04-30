@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../login/login_page.dart';
@@ -67,11 +68,20 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
 
+    String? title;
     List<String> messages = [];
+
     if (message is String) {
       messages.add(message);
     } else if (message is List) {
       messages = message.map((e) => e.toString()).toList();
+    } else if (message is Map) {
+      title = message['title']?.toString();
+      if (message['list'] is List) {
+        messages = (message['list'] as List).map((e) => e.toString()).toList();
+      } else if (message['message'] != null) {
+        messages.add(message['message'].toString());
+      }
     }
 
     late AnimationController notificationAnimController;
@@ -120,37 +130,31 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: messages.map((msg) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: messages.length > 1
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 4, right: 6),
-                                    child: Icon(Icons.circle, color: Colors.white, size: 6),
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      msg,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
+                      children: [
+                        if (title != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              title,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                        ...messages.map((msg) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: (messages.length > 1 || title != null)
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 4, right: 6),
+                                      child: Icon(Icons.circle, color: Colors.white, size: 6),
                                     ),
-                                  ),
-                                ],
-                              )
-                            : Text(
-                                msg,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                      )).toList(),
+                                    Flexible(child: Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13))),
+                                  ],
+                                )
+                              : Text(msg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                        )).toList(),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -198,11 +202,6 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
   final String apiUrl = "http://192.168.2.11:8000/api/register";
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) {
-      _showNotification("Harap lengkapi data dengan benar");
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
@@ -336,6 +335,8 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                           controller: phoneController,
                           hint: "Masukkan nomor HP",
                           icon: Icons.phone_android_outlined,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         ),
                         const SizedBox(height: 16),
 
@@ -400,7 +401,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Sudah punya akun? "),
+                    const Text("Sudah punya akun?"),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text("Login", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
@@ -434,6 +435,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
     bool obscureText = false,
     VoidCallback? togglePassword,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return Container(
@@ -457,6 +459,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
         obscureText: obscureText,
         validator: validator,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.orange, size: 22),
           suffixIcon: isPassword

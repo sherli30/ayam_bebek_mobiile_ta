@@ -33,12 +33,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _currentOverlayEntry = null;
 
     _fadeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
     _slideAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
@@ -74,12 +74,20 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
 
-    // Menangani pesan baik String tunggal maupun List dari API
+    String? title;
     List<String> messages = [];
+
     if (message is String) {
       messages.add(message);
     } else if (message is List) {
       messages = message.map((e) => e.toString()).toList();
+    } else if (message is Map) {
+      title = message['title']?.toString();
+      if (message['list'] is List) {
+        messages = (message['list'] as List).map((e) => e.toString()).toList();
+      } else if (message['message'] != null) {
+        messages.add(message['message'].toString());
+      }
     }
 
     late AnimationController notificationAnimController;
@@ -131,37 +139,47 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: messages.map((msg) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: messages.length > 1
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 4, right: 6),
-                                    child: Icon(Icons.circle, color: Colors.white, size: 6),
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      msg,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
+                      children: [
+                        if (title != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              title,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                        ...messages.map((msg) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: (messages.length > 1 || title != null)
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 4, right: 6),
+                                      child: Icon(Icons.circle, color: Colors.white, size: 6),
+                                    ),
+                                    Flexible(
+                                      child: Text(
+                                        msg,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                     ),
+                                  ],
+                                )
+                              : Text(
+                                  msg,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
                                   ),
-                                ],
-                              )
-                            : Text(
-                                msg,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
                                 ),
-                              ),
-                      )).toList(),
+                        )).toList(),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -208,12 +226,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) {
-      _showNotification("Harap lengkapi email dan password");
-      return;
-    }
-    setState(() => _isLoading = true);
- 
+    setState(() => _isLoading = true); 
+
     const String apiUrl = "http://192.168.2.11:8000/api/login";
 
     try {
@@ -283,7 +297,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "Ayam & Bebek",
+                  "Toko Pakan",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -384,7 +398,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Belum punya akun? "),
+                    const Text("Belum punya akun?"),
                     TextButton(
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage())),
                       child: const Text("Daftar Sekarang", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
